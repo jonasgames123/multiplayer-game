@@ -1,122 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Multiplayer Game</title>
+  <title>Multiplayer Test</title>
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { background: #9be7ff; display: block; }
+    body { margin:0; }
+    canvas { background:#ddd; display:block; }
   </style>
 </head>
 <body>
-<canvas id="game"></canvas>
+<canvas id="c"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
+const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-
-canvas.width = 900;
-canvas.height = 800;
-
-const worldSize = 6000;
+canvas.width = 800;
+canvas.height = 600;
 
 const socket = new WebSocket(
   (location.protocol === "https:" ? "wss://" : "ws://") + location.host
 );
 
-let players = [];
-let blocks = [];
-
-let player = {
-  x: 100,
-  y: 100,
-  id: Math.random().toString(36).substr(2, 9)
-};
+let myPlayer = { x: 100, y: 100 };
+let players = {};
 
 let keys = {};
-window.addEventListener("keydown", e => keys[e.key] = true);
-window.addEventListener("keyup", e => keys[e.key] = false);
+onkeydown = e => keys[e.key] = true;
+onkeyup = e => keys[e.key] = false;
 
-// bauen mit klick
-canvas.addEventListener("click", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left + cameraX) / 20) * 20;
-  const y = Math.floor((e.clientY - rect.top + cameraY) / 20) * 20;
-
-  socket.send(JSON.stringify({
-    type: "block",
-    block: { x, y }
-  }));
-});
-
-socket.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  players = data.players;
-  blocks = data.blocks;
+socket.onmessage = (e) => {
+  players = JSON.parse(e.data);
 };
 
-function update() {
-  let dx = 0, dy = 0;
-  if (keys["w"]) dy -= 3;
-  if (keys["s"]) dy += 3;
-  if (keys["a"]) dx -= 3;
-  if (keys["d"]) dx += 3;
-
-  let newX = player.x + dx;
-  let newY = player.y + dy;
-
-  // kollision mit blöcken
-  let blocked = false;
-  for (let b of blocks) {
-    if (
-      newX < b.x + 20 &&
-      newX + 20 > b.x &&
-      newY < b.y + 20 &&
-      newY + 20 > b.y
-    ) {
-      blocked = true;
-      break;
-    }
-  }
-
-  if (!blocked) {
-    player.x = Math.max(0, Math.min(worldSize - 20, newX));
-    player.y = Math.max(0, Math.min(worldSize - 20, newY));
-  }
-
-  socket.send(JSON.stringify({
-    type: "player",
-    player: player
-  }));
-}
-
-let cameraX = 0;
-let cameraY = 0;
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  cameraX = player.x - canvas.width / 2;
-  cameraY = player.y - canvas.height / 2;
-
-  cameraX = Math.max(0, Math.min(worldSize - canvas.width, cameraX));
-  cameraY = Math.max(0, Math.min(worldSize - canvas.height, cameraY));
-
-  // blöcke
-  for (let b of blocks) {
-    ctx.fillStyle = "brown";
-    ctx.fillRect(b.x - cameraX, b.y - cameraY, 20, 20);
-  }
-
-  // spieler
-  for (let p of players) {
-    ctx.fillStyle = p.id === player.id ? "green" : "blue";
-    ctx.fillRect(p.x - cameraX, p.y - cameraY, 20, 20);
-  }
-}
-
 function loop() {
-  update();
-  draw();
+  if (keys["w"]) myPlayer.y -= 3;
+  if (keys["s"]) myPlayer.y += 3;
+  if (keys["a"]) myPlayer.x -= 3;
+  if (keys["d"]) myPlayer.x += 3;
+
+  socket.send(JSON.stringify(myPlayer));
+
+  ctx.clearRect(0,0,800,600);
+
+  for (let id in players) {
+    ctx.fillStyle = "blue";
+    ctx.fillRect(players[id].x, players[id].y, 20, 20);
+  }
+
   requestAnimationFrame(loop);
 }
 
