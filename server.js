@@ -15,7 +15,12 @@ wss.on("connection", (ws) => {
   clients.push(ws);
 
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg);
+    let data;
+    try {
+      data = JSON.parse(msg);
+    } catch (e) {
+      return;
+    }
 
     if (data.type === "player") {
       ws.player = data.player;
@@ -24,15 +29,6 @@ wss.on("connection", (ws) => {
     if (data.type === "block") {
       blocks.push(data.block);
     }
-
-    const sendData = JSON.stringify({
-      players: clients.map(c => c.player).filter(p => p),
-      blocks: blocks
-    });
-
-    clients.forEach(c => {
-      if (c.readyState === 1) c.send(sendData);
-    });
   });
 
   ws.on("close", () => {
@@ -40,5 +36,19 @@ wss.on("connection", (ws) => {
   });
 });
 
+// 👉 sendet 20x pro Sekunde ALLE Spieler an ALLE
+setInterval(() => {
+  const sendData = JSON.stringify({
+    players: clients.map(c => c.player).filter(p => p),
+    blocks: blocks
+  });
+
+  clients.forEach(c => {
+    if (c.readyState === WebSocket.OPEN) {
+      c.send(sendData);
+    }
+  });
+}, 50);
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server läuft auf", PORT));
+server.listen(PORT, () => console.log("Server läuft auf Port", PORT));
