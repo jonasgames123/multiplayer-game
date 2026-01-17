@@ -48,6 +48,7 @@ function loop() {
   if (socket.readyState === WebSocket.OPEN && myId) {
     socket.send(JSON.stringify({
       type: "move",
+      id: myId,
       player: myPlayer
     }));
   }
