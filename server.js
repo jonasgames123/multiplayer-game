@@ -15,14 +15,14 @@ wss.on("connection", (ws) => {
 
   players[id] = { x: 200, y: 200 };
 
-  // 👉 schick dem Spieler seine ID
   ws.send(JSON.stringify({ type: "id", id }));
 
   ws.on("message", (msg) => {
     try {
       const data = JSON.parse(msg);
+
       if (data.type === "move") {
-        players[id] = data.player;
+        players[data.id] = data.player;
       }
     } catch (e) {}
   });
