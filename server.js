@@ -15,8 +15,10 @@ wss.on("connection", (ws) => {
   players[id] = { x: 100, y: 100 };
 
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg);
-    players[id] = data;
+    try {
+      const data = JSON.parse(msg);
+      players[id] = data;
+    } catch (e) {}
   });
 
   ws.on("close", () => {

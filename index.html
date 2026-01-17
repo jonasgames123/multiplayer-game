@@ -3,8 +3,8 @@
 <head>
   <title>Multiplayer Test</title>
   <style>
-    body { margin:0; }
-    canvas { background:#ddd; display:block; }
+    body { margin:0; overflow:hidden; }
+    canvas { background:#ccc; display:block; }
   </style>
 </head>
 <body>
@@ -16,9 +16,7 @@ const ctx = canvas.getContext("2d");
 canvas.width = 800;
 canvas.height = 600;
 
-const socket = new WebSocket(
-  (location.protocol === "https:" ? "wss://" : "ws://") + location.host
-);
+const socket = new WebSocket("wss://" + location.host);
 
 let myPlayer = { x: 100, y: 100 };
 let players = {};
@@ -37,7 +35,9 @@ function loop() {
   if (keys["a"]) myPlayer.x -= 3;
   if (keys["d"]) myPlayer.x += 3;
 
-  socket.send(JSON.stringify(myPlayer));
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(myPlayer));
+  }
 
   ctx.clearRect(0,0,800,600);
 
