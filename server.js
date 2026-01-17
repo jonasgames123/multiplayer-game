@@ -8,47 +8,30 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
-let clients = [];
-let blocks = [];
+let players = {};
 
 wss.on("connection", (ws) => {
-  clients.push(ws);
+  const id = Math.random().toString(36).substr(2, 9);
+  players[id] = { x: 100, y: 100 };
 
   ws.on("message", (msg) => {
-    let data;
-    try {
-      data = JSON.parse(msg);
-    } catch (e) {
-      return;
-    }
-
-    if (data.type === "player") {
-      ws.player = data.player;
-    }
-
-    if (data.type === "block") {
-      blocks.push(data.block);
-    }
+    const data = JSON.parse(msg);
+    players[id] = data;
   });
 
   ws.on("close", () => {
-    clients = clients.filter(c => c !== ws);
+    delete players[id];
   });
 });
 
-// 👉 sendet 20x pro Sekunde ALLE Spieler an ALLE
 setInterval(() => {
-  const sendData = JSON.stringify({
-    players: clients.map(c => c.player).filter(p => p),
-    blocks: blocks
-  });
-
-  clients.forEach(c => {
-    if (c.readyState === WebSocket.OPEN) {
-      c.send(sendData);
+  const data = JSON.stringify(players);
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data);
     }
   });
 }, 50);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server läuft auf Port", PORT));
+server.listen(PORT, () => console.log("Server läuft"));

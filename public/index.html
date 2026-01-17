@@ -1,56 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Online 2 Spieler Spiel</title>
-<style>
-  body { background:#111; }
-  canvas { background:#222; display:block; margin:auto; }
-</style>
+  <title>Multiplayer Test</title>
+  <style>
+    body { margin:0; }
+    canvas { background:#ddd; display:block; }
+  </style>
 </head>
 <body>
-
-<h2 style="text-align:center;color:white;">Bewegen mit W A S D</h2>
-<canvas id="game" width="600" height="400"></canvas>
+<canvas id="c"></canvas>
 
 <script>
-const ws = new WebSocket(
-  location.protocol === "https:" ? 
-  "wss://" + location.host : 
-  "ws://" + location.host
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+canvas.width = 800;
+canvas.height = 600;
+
+const socket = new WebSocket(
+  (location.protocol === "https:" ? "wss://" : "ws://") + location.host
 );
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+let myPlayer = { x: 100, y: 100 };
+let players = {};
 
-let me = { x:100, y:100 };
-let other = { x:300, y:200 };
+let keys = {};
+onkeydown = e => keys[e.key] = true;
+onkeyup = e => keys[e.key] = false;
 
-ws.onmessage = e => {
-  other = JSON.parse(e.data);
+socket.onmessage = (e) => {
+  players = JSON.parse(e.data);
 };
 
-document.addEventListener("keydown", e => {
-  if (e.key === "w") me.y -= 5;
-  if (e.key === "s") me.y += 5;
-  if (e.key === "a") me.x -= 5;
-  if (e.key === "d") me.x += 5;
-  ws.send(JSON.stringify(me));
-});
+function loop() {
+  if (keys["w"]) myPlayer.y -= 3;
+  if (keys["s"]) myPlayer.y += 3;
+  if (keys["a"]) myPlayer.x -= 3;
+  if (keys["d"]) myPlayer.x += 3;
 
-function draw(){
-  ctx.clearRect(0,0,600,400);
+  socket.send(JSON.stringify(myPlayer));
 
-  ctx.fillStyle="blue";
-  ctx.fillRect(me.x, me.y, 30, 30);
+  ctx.clearRect(0,0,800,600);
 
-  ctx.fillStyle="red";
-  ctx.fillRect(other.x, other.y, 30, 30);
+  for (let id in players) {
+    ctx.fillStyle = "blue";
+    ctx.fillRect(players[id].x, players[id].y, 20, 20);
+  }
 
-  requestAnimationFrame(draw);
+  requestAnimationFrame(loop);
 }
-draw();
-</script>
 
+loop();
+</script>
 </body>
 </html>
