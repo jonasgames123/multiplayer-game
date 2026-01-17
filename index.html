@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Multiplayer Test</title>
+  <title>Multiplayer</title>
   <style>
     body { margin:0; overflow:hidden; background:#999; }
     canvas { background:#ddd; display:block; }
@@ -17,25 +17,26 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-ctx.fillStyle = "black";
-ctx.font = "30px Arial";
-ctx.fillText("Spiel geladen...", 50, 50);
-
 const socket = new WebSocket("wss://" + location.host);
 
-let myPlayer = { x: 200, y: 200 };
+let myId = null;
 let players = {};
+let myPlayer = { x: 200, y: 200 };
 
 let keys = {};
 onkeydown = e => keys[e.key] = true;
 onkeyup = e => keys[e.key] = false;
 
-socket.onopen = () => {
-  console.log("Socket verbunden");
-};
-
 socket.onmessage = (e) => {
-  players = JSON.parse(e.data);
+  const data = JSON.parse(e.data);
+
+  if (data.type === "id") {
+    myId = data.id;
+  }
+
+  if (data.type === "players") {
+    players = data.players;
+  }
 };
 
 function loop() {
@@ -44,17 +45,19 @@ function loop() {
   if (keys["a"]) myPlayer.x -= 4;
   if (keys["d"]) myPlayer.x += 4;
 
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(myPlayer));
+  if (socket.readyState === WebSocket.OPEN && myId) {
+    socket.send(JSON.stringify({
+      type: "move",
+      player: myPlayer
+    }));
   }
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  ctx.fillStyle = "black";
-  ctx.fillText("Spiel läuft", 50, 50);
-
   for (let id in players) {
-    ctx.fillStyle = "blue";
+    if (id === myId) ctx.fillStyle = "blue";
+    else ctx.fillStyle = "red";
+
     ctx.fillRect(players[id].x, players[id].y, 30, 30);
   }
 
