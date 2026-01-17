@@ -3,27 +3,42 @@ const http = require("http");
 const WebSocket = require("ws");
 
 const app = express();
-app.use(express.static("public"));
-
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let players = [];
+app.use(express.static("public"));
 
-wss.on("connection", ws => {
-  players.push(ws);
+let clients = [];
+let blocks = [];
 
-  ws.on("message", msg => {
-    players.forEach(p => {
-      if (p !== ws && p.readyState === WebSocket.OPEN) {
-        p.send(msg);
-      }
+wss.on("connection", (ws) => {
+  clients.push(ws);
+
+  ws.on("message", (msg) => {
+    const data = JSON.parse(msg);
+
+    if (data.type === "player") {
+      ws.player = data.player;
+    }
+
+    if (data.type === "block") {
+      blocks.push(data.block);
+    }
+
+    const sendData = JSON.stringify({
+      players: clients.map(c => c.player).filter(p => p),
+      blocks: blocks
+    });
+
+    clients.forEach(c => {
+      if (c.readyState === 1) c.send(sendData);
     });
   });
 
   ws.on("close", () => {
-    players = players.filter(p => p !== ws);
+    clients = clients.filter(c => c !== ws);
   });
 });
 
-server.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("Server läuft auf", PORT));
