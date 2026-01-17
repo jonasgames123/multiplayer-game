@@ -3,12 +3,45 @@
 <head>
   <title>Multiplayer</title>
   <style>
-    body { margin:0; overflow:hidden; background:#999; }
+    body { margin:0; overflow:hidden; background:#999; touch-action:none; }
     canvas { background:#ddd; display:block; }
+
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 5px;
+      user-select: none;
+    }
+
+    .btn {
+      background: #444;
+      color: white;
+      font-size: 24px;
+      text-align: center;
+      line-height: 60px;
+      border-radius: 12px;
+    }
   </style>
 </head>
 <body>
+
 <canvas id="c"></canvas>
+
+<div class="controls">
+  <div></div>
+  <div class="btn" id="up">⬆</div>
+  <div></div>
+  <div class="btn" id="left">⬅</div>
+  <div></div>
+  <div class="btn" id="right">➡</div>
+  <div></div>
+  <div class="btn" id="down">⬇</div>
+  <div></div>
+</div>
 
 <script>
 const canvas = document.getElementById("c");
@@ -24,31 +57,37 @@ let players = {};
 let myPlayer = { x: 200, y: 200 };
 
 let keys = {};
-onkeydown = e => keys[e.key] = true;
-onkeyup = e => keys[e.key] = false;
+
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
+
+// 👉 Touch Buttons
+function bindBtn(id, key) {
+  const b = document.getElementById(id);
+  b.addEventListener("touchstart", e => { e.preventDefault(); keys[key] = true; });
+  b.addEventListener("touchend", e => { e.preventDefault(); keys[key] = false; });
+}
+
+bindBtn("up", "ArrowUp");
+bindBtn("down", "ArrowDown");
+bindBtn("left", "ArrowLeft");
+bindBtn("right", "ArrowRight");
 
 socket.onmessage = (e) => {
   const data = JSON.parse(e.data);
-
-  if (data.type === "id") {
-    myId = data.id;
-  }
-
-  if (data.type === "players") {
-    players = data.players;
-  }
+  if (data.type === "id") myId = data.id;
+  if (data.type === "players") players = data.players;
 };
 
 function loop() {
-  if (keys["w"]) myPlayer.y -= 4;
-  if (keys["s"]) myPlayer.y += 4;
-  if (keys["a"]) myPlayer.x -= 4;
-  if (keys["d"]) myPlayer.x += 4;
+  if (keys["ArrowUp"] || keys["w"]) myPlayer.y -= 4;
+  if (keys["ArrowDown"] || keys["s"]) myPlayer.y += 4;
+  if (keys["ArrowLeft"] || keys["a"]) myPlayer.x -= 4;
+  if (keys["ArrowRight"] || keys["d"]) myPlayer.x += 4;
 
-  if (socket.readyState === WebSocket.OPEN && myId) {
+  if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: "move",
-      id: myId,
       player: myPlayer
     }));
   }
@@ -56,9 +95,7 @@ function loop() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   for (let id in players) {
-    if (id === myId) ctx.fillStyle = "blue";
-    else ctx.fillStyle = "red";
-
+    ctx.fillStyle = (id === myId) ? "blue" : "red";
     ctx.fillRect(players[id].x, players[id].y, 30, 30);
   }
 
